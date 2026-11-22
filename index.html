@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Cá Ngựa Tài Chính - Hoạt Động 9</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #fefce8 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Custom Board Grid 15x15 */
+        .ludo-board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: 620px;
+            background: #ffffff;
+            border: 6px solid #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .cell {
+            border: 1px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 0.65rem;
+            font-weight: 700;
+            user-select: none;
+        }
+
+        /* Home Yards */
+        .yard-red { background-color: #fee2e2; border-color: #fca5a5; }
+        .yard-blue { background-color: #dbeafe; border-color: #93c5fd; }
+        .yard-yellow { background-color: #fef9c3; border-color: #fde047; }
+        .yard-green { background-color: #dcfce7; border-color: #86efac; }
+
+        /* Home Stretch & Start Cells */
+        .bg-team-red { background-color: #ef4444; color: white; }
+        .bg-team-blue { background-color: #3b82f6; color: white; }
+        .bg-team-yellow { background-color: #eab308; color: white; }
+        .bg-team-green { background-color: #22c55e; color: white; }
+
+        /* Horse Piece Styling */
+        .horse-piece {
+            width: 78%;
+            height: 78%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 2.2vw, 18px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+            border: 2px solid white;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            z-index: 10;
+            position: relative;
+        }
+
+        .horse-selectable {
+            cursor: pointer;
+            animation: bounceHorse 0.8s infinite alternate;
+            box-shadow: 0 0 0 3px #f59e0b, 0 6px 12px rgba(0,0,0,0.4);
+            z-index: 20;
+        }
+
+        .horse-selectable:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes bounceHorse {
+            0% { transform: translateY(0) scale(1.05); }
+            100% { transform: translateY(-4px) scale(1.15); }
+        }
+
+        /* Dice 3D-like Animation */
+        .dice-box {
+            width: 68px;
+            height: 68px;
+            background: white;
+            border-radius: 16px;
+            border: 3px solid #334155;
+            box-shadow: 0 8px 0 #334155, 0 12px 20px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .dice-box:active:not(.disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #334155, 0 6px 10px rgba(0,0,0,0.2);
+        }
+
+        .dice-box.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .dice-rolling {
+            animation: shakeDice 0.4s infinite;
+        }
+
+        @keyframes shakeDice {
+            0% { transform: rotate(0deg) scale(1.05); }
+            25% { transform: rotate(15deg) scale(1.1); }
+            50% { transform: rotate(0deg) scale(1.05); }
+            75% { transform: rotate(-15deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1.05); }
+        }
+
+        /* Center Crown */
+        .center-crown {
+            grid-column: 7 / 10;
+            grid-row: 7 / 10;
+            background: conic-gradient(from 45deg, #ef4444 0deg 90deg, #3b82f6 90deg 180deg, #eab308 180deg 270deg, #22c55e 270deg 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #1e293b;
+            z-index: 5;
+        }
+
+        /* Yard Overlays */
+        .yard-overlay {
+            border-radius: 12px;
+            border: 3px solid rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col">
+
+    <!-- TOP HEADER: 45-MINUTE LESSON TIMER & CONTROLS -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <!-- Title & Lesson Tag -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-extrabold text-xl shadow">
+                    🐴
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">CỜ CÁ NGỰA TÀI CHÍNH</h1>
+                    <p class="text-xs text-slate-500 font-medium">Hoạt động 9: Lập và thực hiện kế hoạch tài chính của bản thân</p>
+                </div>
+            </div>
+
+            <!-- 45:00 Lesson Timer -->
+            <div class="flex items-center gap-2 bg-slate-900 text-white px-3.5 py-1.5 rounded-2xl shadow-inner">
+                <span class="text-xs uppercase tracking-wider text-amber-400 font-bold hidden sm:inline">Tiết học 45p:</span>
+                <span id="timer-display" class="font-mono text-xl sm:text-2xl font-extrabold text-emerald-400 tracking-wider">45:00</span>
+                <div class="flex items-center gap-1 ml-1 border-l border-slate-700 pl-2">
+                    <button id="btn-timer-toggle" onclick="toggleTimer()" title="Tạm dừng / Tiếp tục" class="p-1.5 hover:bg-slate-700 rounded-lg text-xs font-semibold transition">
+                        ⏸️
+                    </button>
+                    <button onclick="resetTimer()" title="Đặt lại 45:00" class="p-1.5 hover:bg-slate-700 rounded-lg text-xs font-semibold transition">
+                        🔄
+                    </button>
+                    <button onclick="endGameByTime()" title="Kết thúc & Xếp hạng ngay" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 rounded-lg text-xs font-bold transition ml-1">
+                        Tổng kết
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sound & Room Info -->
+            <div class="flex items-center gap-2">
+                <div id="room-badge" class="hidden bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-xl text-xs font-bold border border-indigo-200 flex items-center gap-1.5">
+                    <span>Phòng: <strong id="display-room-code" class="text-sm tracking-widest">------</strong></span>
+                    <button onclick="copyRoomCode()" class="bg-indigo-600 text-white px-2 py-0.5 rounded text-[11px] hover:bg-indigo-700">Chép</button>
+                </div>
+                <button id="btn-sound" onclick="toggleSound()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition" title="Bật/Tắt âm thanh">
+                    🔊
+                </button>
+                <button onclick="showSetupModal()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition">
+                    ⚙️ Cài đặt
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        <!-- LEFT/CENTER: LUDO BOARD -->
+        <div class="lg:col-span-7 flex flex-col items-center justify-center">
+            <div id="ludo-board" class="ludo-board">
+                <!-- Cells will be rendered by JS -->
+            </div>
+
+            <!-- Rule Quick Legend -->
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-600 bg-white/80 px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                <span class="font-semibold text-slate-800">Luật chơi nhanh:</span>
+                <span>🎲 Đổ <b>1</b> hoặc <b>6</b> để xuất chuồng & thêm lượt</span>
+                <span>•</span>
+                <span>🧠 Trả lời <b>ĐÚNG</b> câu hỏi tài chính mới được đi</span>
+                <span>•</span>
+                <span>⚔️ Đá ngựa đối phương về chuồng (+20đ)</span>
+            </div>
+        </div>
+
+        <!-- RIGHT: DICE CONTROL, STATUS & LIVE LEADERBOARD -->
+        <div class="lg:col-span-5 flex flex-col gap-4 w-full">
+            
+            <!-- TURN & DICE CONTROL CARD -->
+            <div id="turn-card" class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border-2 border-red-500 transition-colors duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Lượt thi đấu hiện tại</span>
+                        <h2 id="current-turn-name" class="text-xl sm:text-2xl font-extrabold text-red-600 flex items-center gap-2">
+                            🔴 Đội Đỏ (Nhóm 1)
+                        </h2>
+                    </div>
+                    <span id="online-role-badge" class="hidden text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                        Bạn là: ...
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <!-- Interactive Dice -->
+                    <div id="dice-btn" onclick="handleDiceClick()" class="dice-box shrink-0 text-slate-800" title="Bấm để tung xúc xắc">
+                        🎲
+                    </div>
+
+                    <div class="flex-1">
+                        <p id="action-instruction" class="text-sm font-bold text-slate-800 mb-1">
+                            Bấm vào xúc xắc để gieo!
+                        </p>
+                        <p id="action-subtext" class="text-xs text-slate-500 leading-relaxed">
+                            Cần gieo được 1 (Nhất) hoặc 6 (Lục) để xuất quân khỏi chuồng.
+                        </p>
+                        <button id="btn-skip-turn" onclick="skipTurnManual()" class="hidden mt-2 px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">
+                            Bỏ qua lượt (Không có nước đi) ⏭️
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIVE LEADERBOARD -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-md border border-slate-200">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-extrabold text-base text-slate-800 flex items-center gap-2">
+                        🏆 Bảng Xếp Hạng Trực Tiếp
+                    </h3>
+                    <span class="text-xs font-medium text-slate-500">Về chuồng: +50đ | Đúng: +10đ</span>
+                </div>
+
+                <div id="leaderboard-list" class="space-y-2.5">
+                    <!-- Rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- ACTIVITY LOG -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400 mb-2">Nhật ký trận đấu</h4>
+                <div id="game-log" class="h-32 overflow-y-auto space-y-1.5 text-xs text-slate-600 pr-1">
+                    <div class="p-2 bg-slate-50 rounded-lg">🎉 Chào mừng các nhóm đến với trò chơi Cờ Cá Ngựa Tài Chính!</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL 1: SETUP / MODE SELECTION (LOCAL VS ONLINE) -->
+    <div id="setup-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 text-3xl mb-2">🐴💰</div>
+                <h2 class="text-2xl font-extrabold text-slate-900">Cờ Cá Ngựa Tài Chính Cá Nhân</h2>
+                <p class="text-sm text-slate-500 mt-1">Chủ đề: <b>Hoạt động 9 - Lập và thực hiện kế hoạch tài chính của bản thân</b></p>
+            </div>
+
+            <!-- Mode Tabs -->
+            <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-2xl mb-6">
+                <button id="tab-local" onclick="switchSetupTab('local')" class="py-2.5 px-4 rounded-xl font-bold text-sm bg-white text-slate-900 shadow-sm transition">
+                    🏫 Chơi Tại Lớp (1 Máy)
+                </button>
+                <button id="tab-online" onclick="switchSetupTab('online')" class="py-2.5 px-4 rounded-xl font-bold text-sm text-slate-600 hover:text-slate-900 transition">
+                    🌐 Chơi Online (Mã Phòng)
+                </button>
+            </div>
+
+            <!-- LOCAL SETUP PANEL -->
+            <div id="panel-local" class="space-y-4">
+                <p class="text-xs text-slate-600 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                    💡 Phù hợp khi giáo viên trình chiếu trên màn hình lớn cho 2–4 nhóm học sinh thi đua trực tiếp hoặc đấu với Bot thông minh.
+                </p>
+
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-red-50 border border-red-200">
+                        <span class="font-bold text-red-700 text-sm w-24">🔴 Đội Đỏ:</span>
+                        <input id="name-0" type="text" value="Nhóm 1 (Đỏ)" class="flex-1 px-3 py-1.5 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none">
+                        <select id="type-0" class="px-2 py-1.5 rounded-lg border border-red-200 text-xs font-bold bg-white">
+                            <option value="human">Người chơi</option>
+                            <option value="bot">Máy (Bot)</option>
+                            <option value="off">Tắt</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-blue-50 border border-blue-200">
+                        <span class="font-bold text-blue-700 text-sm w-24">🔵 X.Dương:</span>
+                        <input id="name-1" type="text" value="Nhóm 2 (Xanh Dương)" class="flex-1 px-3 py-1.5 rounded-lg border border-blue-200 text-sm font-semibold focus:outline-none">
+                        <select id="type-1" class="px-2 py-1.5 rounded-lg border border-blue-200 text-xs font-bold bg-white">
+                            <option value="human">Người chơi</option>
+                            <option value="bot">Máy (Bot)</option>
+                            <option value="off">Tắt</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-yellow-50 border border-yellow-200">
+                        <span class="font-bold text-yellow-700 text-sm w-24">🟡 Đội Vàng:</span>
+                        <input id="name-2" type="text" value="Nhóm 3 (Vàng)" class="flex-1 px-3 py-1.5 rounded-lg border border-yellow-200 text-sm font-semibold focus:outline-none">
+                        <select id="type-2" class="px-2 py-1.5 rounded-lg border border-yellow-200 text-xs font-bold bg-white">
+                            <option value="human">Người chơi</option>
+                            <option value="bot">Máy (Bot)</option>
+                            <option value="off">Tắt</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-green-50 border border-green-200">
+                        <span class="font-bold text-green-700 text-sm w-24">🟢 Xanh Lá:</span>
+                        <input id="name-3" type="text" value="Nhóm 4 (Xanh Lá)" class="flex-1 px-3 py-1.5 rounded-lg border border-green-200 text-sm font-semibold focus:outline-none">
+                        <select id="type-3" class="px-2 py-1.5 rounded-lg border border-green-200 text-xs font-bold bg-white">
+                            <option value="human">Người chơi</option>
+                            <option value="bot">Máy (Bot)</option>
+                            <option value="off">Tắt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="startLocalGame()" class="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold rounded-2xl shadow-lg text-base transition transform active:scale-98">
+                    🚀 Bắt Đầu Tiết Học (45:00)
+                </button>
+            </div>
+
+            <!-- ONLINE SETUP PANEL -->
+            <div id="panel-online" class="hidden space-y-4">
+                <p class="text-xs text-slate-600 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                    🌐 Các nhóm học sinh dùng điện thoại/laptop riêng. Một người bấm <b>Tạo Phòng Mới</b> để lấy mã 6 ký tự, các nhóm khác nhập mã để cùng vào bàn cờ!
+                </p>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Tên nhóm / Tên của bạn:</label>
+                    <input id="online-player-name" type="text" placeholder="Ví dụ: Nhóm 1 - Lớp 11A1" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button id="btn-create-room" onclick="createOnlineRoom()" class="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow transition text-sm">
+                        ➕ Tạo Phòng Mới
+                    </button>
+                    <div class="flex gap-1.5">
+                        <input id="join-room-input" type="text" maxlength="6" placeholder="Mã 6 ký tự" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-extrabold uppercase tracking-widest text-center focus:outline-none focus:border-indigo-500">
+                        <button id="btn-join-room" onclick="joinOnlineRoom()" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-sm shrink-0 transition">
+                            Vào
+                        </button>
+                    </div>
+                </div>
+                <p id="online-status-msg" class="text-xs text-center text-rose-600 font-semibold"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: FINANCIAL PLANNING QUIZ MODAL -->
+    <div id="quiz-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border-2 border-amber-400 animate-[fadeIn_0.2s_ease-out]">
+            <div class="flex items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+                <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-extrabold">
+                    💡 THỬ THÁCH KẾ HOẠCH TÀI CHÍNH CÁ NHÂN
+                </span>
+                <span id="quiz-action-badge" class="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
+                    Hành động: Xuất chuồng
+                </span>
+            </div>
+
+            <h3 id="quiz-question" class="text-lg sm:text-xl font-extrabold text-slate-900 leading-snug mb-5">
+                Câu hỏi sẽ hiển thị tại đây...
+            </h3>
+
+            <div id="quiz-options" class="space-y-2.5 mb-5">
+                <!-- Options rendered via JS -->
+            </div>
+
+            <!-- Feedback Box after answering -->
+            <div id="quiz-feedback" class="hidden p-4 rounded-2xl mb-4 text-sm">
+                <p id="quiz-feedback-title" class="font-extrabold text-base mb-1"></p>
+                <p id="quiz-feedback-desc" class="text-slate-700 leading-relaxed"></p>
+            </div>
+
+            <button id="btn-quiz-continue" onclick="confirmQuizResult()" class="hidden w-full py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-base transition">
+                Tiếp tục thực hiện nước đi ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 3: END GAME / SUMMARY PODIUM -->
+    <div id="summary-modal" class="hidden fixed inset-0 bg-slate-900/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl text-center">
+            <div class="text-5xl mb-2">🏆🎉</div>
+            <h2 id="summary-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900">TỔNG KẾT THI ĐẤU</h2>
+            <p id="summary-subtitle" class="text-sm text-slate-500 mt-1 mb-6">Hoạt động 9: Lập và thực hiện kế hoạch tài chính của bản thân</p>
+
+            <div id="final-rankings" class="space-y-3 text-left mb-6">
+                <!-- Final ranking cards -->
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-extrabold rounded-2xl shadow-lg hover:opacity-95 transition">
+                🔄 Chơi Ván Mới
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST MESSAGE -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-bold z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        Thông báo
+    </div>
+
+    <!-- FIREBASE & GAME LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. NGÂN HÀNG 32 CÂU HỎI TÀI CHÍNH CÁ NHÂN
+        // Chủ đề: Hoạt động 9 - Lập và thực hiện kế hoạch tài chính của bản thân
+        // ==========================================
+        const QUESTION_BANK = [
+            {
+                q: "Bước đầu tiên và quan trọng nhất khi lập kế hoạch tài chính cá nhân của bản thân là gì?",
+                options: [
+                    "Xác định mục tiêu tài chính cụ thể (ngắn hạn, trung hạn, dài hạn) và đánh giá tình hình thu chi hiện tại",
+                    "Vay tiền bạn bè để mua sắm những món đồ mình thích trước rồi tính sau",
+                    "Chi tiêu hết số tiền hiện có rồi mới bắt đầu ghi chép lại",
+                    "Chỉ cần tiết kiệm khi nào có thu nhập hàng chục triệu đồng"
+                ],
+                correct: 0,
+                explain: "Lập kế hoạch tài chính luôn bắt đầu từ việc xác định rõ mục tiêu và nắm được dòng tiền thu - chi thực tế của bản thân."
+            },
+            {
+                q: "Theo quy tắc quản lý tài chính phổ biến 50/30/20, tỷ lệ 50% thu nhập được dành cho khoản nào?",
+                options: [
+                    "Giải trí, du lịch và mua sắm theo sở thích",
+                    "Các nhu cầu thiết yếu (ăn uống, học tập, đi lại, sinh hoạt cơ bản)",
+                    "Tiết kiệm và đầu tư dài hạn",
+                    "Quà tặng bạn bè và các hoạt động lễ hội"
+                ],
+                correct: 1,
+                explain: "Quy tắc 50/30/20 chia thu nhập thành: 50% Nhu cầu thiết yếu, 30% Mong muốn cá nhân và 20% Tiết kiệm/Dự phòng."
+            },
+            {
+                q: "Đối với học sinh THPT, khoản nào sau đây được xếp vào nhóm 'Nhu cầu thiết yếu' (Needs)?",
+                options: [
+                    "Mua tai nghe không dây phiên bản giới hạn theo thần tượng",
+                    "Mua sách giáo khoa, dụng cụ học tập và bữa ăn sáng hằng ngày",
+                    "Uống trà sữa đắt tiền mỗi ngày cùng bạn bè",
+                    "Nạp tiền mua trang phục trong trò chơi điện tử"
+                ],
+                correct: 1,
+                explain: "Nhu cầu thiết yếu là những thứ phục vụ trực tiếp cho sự sống, sức khỏe và nhiệm vụ học tập cơ bản."
+            },
+            {
+                q: "Khi muốn mua một chiếc xe đạp điện mới sau 8 tháng nữa, mục tiêu tài chính này thuộc loại nào?",
+                options: [
+                    "Mục tiêu tài chính ngắn hạn hoặc trung hạn có thời hạn rõ ràng",
+                    "Mục tiêu chi tiêu ngẫu hứng không cần kế hoạch",
+                    "Khoản chi phí phát sinh bất khả kháng",
+                    "Quỹ đầu tư mạo hiểm"
+                ],
+                correct: 0,
+                explain: "Mục tiêu có số tiền cụ thể và mốc thời gian vài tháng đến 1 năm giúp học sinh dễ dàng chia nhỏ số tiền cần tiết kiệm mỗi tuần/tháng."
+            },
+            {
+                q: "Nguyên tắc SMART trong thiết lập mục tiêu tài chính cá nhân bao gồm yếu tố nào sau đây?",
+                options: [
+                    "Cụ thể (Specific), Đo lường được (Measurable), Khả thi (Achievable), Thực tế (Relevant), Có thời hạn (Time-bound)",
+                    "Chi tiêu nhanh, Mua sắm nhiều, Vay mượn dễ, Không cần ghi chép, Hưởng thụ ngay",
+                    "Tiết kiệm toàn bộ tiền ăn sáng để mua đồ hiệu",
+                    "Chỉ đặt mục tiêu thật cao dù không có nguồn thu"
+                ],
+                correct: 0,
+                explain: "Mục tiêu đạt chuẩn SMART giúp kế hoạch tài chính rõ ràng, khả thi và dễ theo dõi tiến độ thực hiện."
+            },
+            {
+                q: "Tại sao cần phải có 'Quỹ dự phòng khẩn cấp' trong kế hoạch tài chính của bản thân?",
+                options: [
+                    "Để dùng khi muốn mua quần áo giảm giá cuối tuần",
+                    "Để ứng phó với các tình huống bất ngờ như hỏng xe, ốm đau, mất dụng cụ học tập mà không làm vỡ kế hoạch",
+                    "Để cho bạn bè vay tiêu xài thoải mái",
+                    "Vì bắt buộc phải nộp cho nhà trường"
+                ],
+                correct: 1,
+                explain: "Quỹ dự phòng giúp bạn chủ động xử lý rủi ro bất ngờ mà không phải vay nợ hay phá vỡ khoản tiết kiệm mục tiêu."
+            },
+            {
+                q: "Hành động nào giúp học sinh tránh được 'bẫy mua sắm bốc đồng' khi lướt mạng xã hội hoặc sàn thương mại điện tử?",
+                options: [
+                    "Áp dụng quy tắc chờ đợi 24h - 72h trước khi quyết định mua món đồ không thiết yếu",
+                    "Thấy mã giảm giá là đặt mua ngay lập tức kẻo hết",
+                    "Mượn tiền bạn để thanh toán cho kịp giờ săn sale",
+                    "Mua mọi món đồ mà người nổi tiếng quảng cáo"
+                ],
+                correct: 0,
+                explain: "Quy tắc trì hoãn 24–72 giờ giúp cảm xúc lắng xuống để bạn tự hỏi: 'Mình có thực sự cần món đồ này không?'."
+            },
+            {
+                q: "Việc ghi chép thu – chi hằng ngày (bằng sổ tay hoặc ứng dụng) mang lại lợi ích gì nhất?",
+                options: [
+                    "Giúp nhận ra các khoản chi tiêu lãng phí ('rò rỉ tài chính') để kịp thời điều chỉnh",
+                    "Làm tốn thời gian và khiến bản thân cảm thấy áp lực",
+                    "Chỉ để khoe với bạn bè xem mình tiêu nhiều tiền thế nào",
+                    "Giúp tự động tăng thêm tiền tiêu vặt mỗi tháng"
+                ],
+                correct: 0,
+                explain: "Ghi chép thu chi giúp minh bạch dòng tiền cá nhân, từ đó cắt giảm những khoản chi nhỏ nhưng lặp lại gây lãng phí."
+            },
+            {
+                q: "Trong kế hoạch tài chính cá nhân, công thức tiết kiệm thông minh nào được các chuyên gia khuyên dùng?",
+                options: [
+                    "Thu nhập – Tiết kiệm = Chi tiêu (Trả cho mình trước)",
+                    "Thu nhập – Chi tiêu = Tiết kiệm (Còn dư mới tiết kiệm)",
+                    "Chi tiêu trước – Vay mượn sau = Tiết kiệm",
+                    "Tiêu hết thu nhập rồi xin thêm gia đình"
+                ],
+                correct: 0,
+                explain: "Trích ngay khoản tiết kiệm ngay khi nhận được tiền (tiền tiêu vặt, tiền thưởng, làm thêm) đảm bảo mục tiêu luôn được ưu tiên."
+            },
+            {
+                q: "Nguồn thu nhập hợp pháp, phù hợp mà học sinh THPT có thể đưa vào kế hoạch tài chính gồm những gì?",
+                options: [
+                    "Tiền tiêu vặt gia đình cho, tiền mừng tuổi, học bổng/tiền thưởng, tiền làm thêm phù hợp lứa tuổi",
+                    "Vay nặng lãi qua các ứng dụng không rõ nguồn gốc",
+                    "Cầm cố đồ dùng học tập của gia đình",
+                    "Tham gia các trò chơi cá cược trực tuyến"
+                ],
+                correct: 0,
+                explain: "Học sinh cần xác định đúng các nguồn thu chính đáng, an toàn và phù hợp với quy định của pháp luật, nhà trường."
+            },
+            {
+                q: "Khi thực hiện kế hoạch tài chính bị 'vượt ngân sách' ở mục giải trí trong tuần này, bạn nên làm gì?",
+                options: [
+                    "Cắt giảm chi tiêu giải trí ở tuần tiếp theo để cân bằng lại tổng ngân sách tháng",
+                    "Bỏ luôn kế hoạch tài chính vì cho rằng mình không làm được",
+                    "Lấy tiền quỹ học tập bù vào và tiếp tục vui chơi",
+                    "Vay tiền bạn để tiêu tiếp cho bằng bạn bằng bè"
+                ],
+                correct: 0,
+                explain: "Kế hoạch tài chính cần sự linh hoạt và tự điều chỉnh: nếu lỡ chi vượt ở một mục, cần thắt chặt ở giai đoạn kế tiếp."
+            },
+            {
+                q: "So sánh giá cả và chất lượng sản phẩm trước khi mua sắm thể hiện nguyên tắc nào trong quản lý tài chính?",
+                options: [
+                    "Chi tiêu thông minh và tối ưu hóa giá trị đồng tiền",
+                    "Tính toán chi li, keo kiệt với bản thân",
+                    "Chỉ mua những món đồ rẻ nhất bất kể chất lượng",
+                    "Mua hàng theo tâm lý đám đông"
+                ],
+                correct: 0,
+                explain: "Người tiêu dùng thông minh luôn cân nhắc giữa giá trị sử dụng thực tế và chi phí bỏ ra."
+            },
+            {
+                q: "Điều gì dễ xảy ra nếu một học sinh chi tiêu vượt quá khả năng tài chính và thường xuyên vay mượn bạn bè?",
+                options: [
+                    "Mất uy tín cá nhân, rơi vào vòng xoáy nợ nần và ảnh hưởng tâm lý học tập",
+                    "Được bạn bè nể phục vì sành điệu",
+                    "Giúp rèn luyện kỹ năng kinh doanh sớm",
+                    "Không có ảnh hưởng gì đến kế hoạch tương lai"
+                ],
+                correct: 0,
+                explain: "Chi tiêu vượt khả năng dẫn tới nợ nần, gây căng thẳng tâm lý và làm rạn nứt các mối quan hệ xung quanh."
+            },
+            {
+                q: "Khi nhận được một khoản tiền thưởng học tập 500.000 đồng, cách phân bổ nào hợp lý nhất theo tư duy kế hoạch tài chính?",
+                options: [
+                    "Dành một phần gửi tiết kiệm mục tiêu, một phần bổ sung quỹ dự phòng và một phần nhỏ tự thưởng hợp lý",
+                    "Mời cả nhóm đi ăn uống hết sạch trong một buổi chiều",
+                    "Mua ngay một món đồ chơi đắt tiền không phục vụ học tập",
+                    "Cất vào ngăn bàn và không cần ghi vào sổ thu chi"
+                ],
+                correct: 0,
+                explain: "Phân bổ khoản thu bất thường theo tỷ lệ hợp lý giúp vừa nuôi dưỡng mục tiêu lớn vừa tạo động lực cho bản thân."
+            },
+            {
+                q: "Yếu tố nào quyết định sự thành công khi thực hiện kế hoạch tài chính cá nhân đã đề ra?",
+                options: [
+                    "Tính kỷ luật, kiên trì theo dõi và rà soát định kỳ kế hoạch",
+                    "Bản kế hoạch được trang trí thật đẹp mắt",
+                    "Có thật nhiều tiền ngay từ đầu",
+                    "Sao chép y nguyên kế hoạch của người khác"
+                ],
+                correct: 0,
+                explain: "Kế hoạch dù hay đến đâu cũng chỉ thành công khi người lập kiên trì thực hiện và kiểm tra định kỳ."
+            },
+            {
+                q: "Tại sao mỗi cá nhân cần tự lập kế hoạch tài chính riêng thay vì dùng chung một mẫu cố định cho tất cả mọi người?",
+                options: [
+                    "Vì mỗi người có nguồn thu, hoàn cảnh gia đình, nhu cầu thiết yếu và mục tiêu khác nhau",
+                    "Vì không ai muốn chia sẻ kế hoạch với người khác",
+                    "Vì các mẫu kế hoạch trên mạng đều sai",
+                    "Vì học sinh không có nhu cầu chi tiêu"
+                ],
+                correct: 0,
+                explain: "Kế hoạch tài chính phải mang tính cá nhân hóa, phù hợp với điều kiện thực tế và ưu tiên riêng của từng người."
+            },
+            {
+                q: "Hành vi nào sau đây thể hiện thói quen 'tiết kiệm tài nguyên cũng là tiết kiệm tài chính'?",
+                options: [
+                    "Bảo quản tốt sách vở, đồ dùng học tập, tắt thiết bị điện khi không sử dụng",
+                    "Mua sắm thật nhiều đồ dùng dự trữ dù chưa cần đến",
+                    "Thay mới điện thoại mỗi năm một lần",
+                    "Thường xuyên làm mất dụng cụ học tập rồi mua lại"
+                ],
+                correct: 0,
+                explain: "Giữ gìn tài sản cá nhân và tiết kiệm điện nước giúp giảm đáng kể chi phí thay mới và sinh hoạt."
+            },
+            {
+                q: "Trước lời mời gọi 'đầu tư siêu lợi nhuận, không cần làm gì cũng có lãi cao' trên mạng, học sinh nên ứng xử thế nào?",
+                options: [
+                    "Cảnh giác cao độ, tuyệt đối không tham gia vì đây là dấu hiệu lừa đảo tài chính",
+                    "Lấy hết tiền tiết kiệm và tiền mừng tuổi để đầu tư ngay",
+                    "Rủ thêm các bạn trong lớp cùng góp vốn",
+                    "Vay tiền người thân để đầu tư kiếm lời nhanh"
+                ],
+                correct: 0,
+                explain: "Hiểu biết tài chính giúp học sinh nhận diện các bẫy lừa đảo 'lợi nhuận cao - không rủi ro' trên không gian mạng."
+            },
+            {
+                q: "Khi rà soát kế hoạch tài chính vào cuối mỗi tháng, bạn cần đánh giá những nội dung nào?",
+                options: [
+                    "Tổng thu thực tế, tổng chi từng hạng mục, số tiền tiết kiệm được và nguyên nhân chênh lệch (nếu có)",
+                    "Chỉ cần đếm xem trong ví còn bao nhiêu tờ tiền",
+                    "So sánh xem mình có nhiều đồ mới hơn bạn cùng bàn hay không",
+                    "Xóa hết dữ liệu tháng cũ để không phải suy nghĩ"
+                ],
+                correct: 0,
+                explain: "Đánh giá cuối tháng giúp rút kinh nghiệm và tối ưu hóa ngân sách cho tháng tiếp theo."
+            },
+            {
+                q: "Chi phí cơ hội trong chi tiêu cá nhân được hiểu đơn giản như thế nào?",
+                options: [
+                    "Khi bạn dùng tiền mua món đồ A, bạn sẽ mất đi cơ hội dùng số tiền đó cho mục tiêu B quan trọng hơn",
+                    "Là số tiền được giảm giá khi mua hàng vào dịp lễ",
+                    "Là khoản tiền thưởng khi gửi tiết kiệm ngân hàng",
+                    "Là chi phí đi lại đến cửa hàng mua sắm"
+                ],
+                correct: 0,
+                explain: "Hiểu về chi phí cơ hội giúp học sinh cân nhắc kỹ trước mỗi quyết định chi tiêu."
+            },
+            {
+                q: "Đâu là ví dụ về mục tiêu tài chính dài hạn phù hợp với học sinh THPT?",
+                options: [
+                    "Tích lũy quỹ hỗ trợ học tập và sinh hoạt khi bước vào ngưỡng cửa Đại học/Cao đẳng sau 2-3 năm nữa",
+                    "Tiết kiệm tiền để mua vé xem phim vào tối thứ Bảy tuần này",
+                    "Mua một quyển vở ghi chép vào ngày mai",
+                    "Trả tiền gửi xe đạp trong tuần"
+                ],
+                correct: 0,
+                explain: "Mục tiêu dài hạn (trên 1–3 năm) giúp định hướng tương lai nghề nghiệp và học tập sau THPT."
+            },
+            {
+                q: "Nếu muốn tăng khoản tiết kiệm mỗi tháng nhưng nguồn tiền tiêu vặt cố định, giải pháp nào khả thi nhất với học sinh?",
+                options: [
+                    "Rà soát và cắt giảm các khoản chi cho 'mong muốn' chưa thực sự cần thiết (trà sữa, đồ ăn vặt, game...)",
+                    "Nhịn ăn sáng hoàn toàn để dồn tiền",
+                    "Lấy tiền quỹ lớp để bù vào quỹ cá nhân",
+                    "Bỏ học đi làm thêm toàn thời gian"
+                ],
+                correct: 0,
+                explain: "Khi thu nhập cố định, tối ưu hóa chi tiêu ở nhóm 'Mong muốn' là cách an toàn và bền vững nhất để tăng tiết kiệm."
+            },
+            {
+                q: "Gửi tiết kiệm ngân hàng (có sự giám hộ của cha mẹ) so với giữ tiền mặt trong hộp tại nhà có ưu điểm gì nổi bật?",
+                options: [
+                    "An toàn hơn, tránh tiêu lẹm vào tiền tiết kiệm và sinh thêm tiền lãi theo thời gian",
+                    "Có thể lấy ra tiêu bất cứ lúc nào trong đêm",
+                    "Không cần tuân thủ kỳ hạn gửi tiền",
+                    "Tiền sẽ tăng gấp đôi chỉ sau một tuần"
+                ],
+                correct: 0,
+                explain: "Tài khoản tiết kiệm giúp bảo toàn vốn, hạn chế thói quen tiện tay rút tiền tiêu vặt và hưởng lãi suất."
+            },
+            {
+                q: "Trong lập kế hoạch tài chính cá nhân, 'cân đối thu – chi' có nghĩa là gì?",
+                options: [
+                    "Đảm bảo tổng chi tiêu và tiết kiệm nằm trong giới hạn tổng nguồn thu, không để thâm hụt",
+                    "Tổng chi tiêu luôn phải lớn hơn tổng thu nhập",
+                    "Chỉ ghi phần thu nhập mà bỏ qua phần chi tiêu",
+                    "Chi tiêu hết toàn bộ thu nhập để số dư bằng 0"
+                ],
+                correct: 0,
+                explain: "Cân đối thu chi giữ cho tình hình tài chính luôn lành mạnh, chủ động và không rơi vào cảnh thiếu hụt."
+            },
+            {
+                q: "Khi bạn bè rủ đi ăn uống ở một quán rất đắt tiền vượt quá ngân sách tuần của bạn, cách ứng xử khéo léo nhất là gì?",
+                options: [
+                    "Thẳng thắn chia sẻ về kế hoạch chi tiêu của mình hoặc đề xuất một địa điểm phù hợp túi tiền cả nhóm",
+                    "Cố gắng đi theo rồi vay tiền bạn khác để trả",
+                    "Lấy tiền đóng học phí của gia đình đưa để chi trả",
+                    "Tức giận và nghỉ chơi với nhóm bạn"
+                ],
+                correct: 0,
+                explain: "Kỹ năng từ chối khéo léo và giao tiếp cởi mở giúp bạn bảo vệ kế hoạch tài chính mà vẫn giữ được tình bạn đẹp."
+            },
+            {
+                q: "Lập kế hoạch tài chính cá nhân sớm từ lứa tuổi học sinh THPT giúp hình thành phẩm chất gì?",
+                options: [
+                    "Tính tự chủ, trách nhiệm với bản thân và năng lực quản lý cuộc sống trưởng thành",
+                    "Thói quen phụ thuộc hoàn toàn vào sự chu cấp của gia đình",
+                    "Tâm lý lo âu, sợ hãi mỗi khi cầm tiền",
+                    "Sự ích kỷ, không bao giờ giúp đỡ người khác"
+                ],
+                correct: 0,
+                explain: "Quản lý tài chính cá nhân là năng lực cốt lõi giúp học sinh tự tin, độc lập khi bước vào đời."
+            },
+            {
+                q: "Một bản kế hoạch tài chính cá nhân hoàn chỉnh cần có những cột thông tin cơ bản nào?",
+                options: [
+                    "Thời gian, Các nguồn thu, Các khoản chi (thiết yếu/mong muốn), Khoản tiết kiệm/dự phòng và Ghi chú đánh giá",
+                    "Chỉ cần ghi tên các món đồ muốn mua",
+                    "Chỉ cần ghi số tiền xin được từ bố mẹ",
+                    "Chỉ ghi các khoản chi lớn trên 1 triệu đồng"
+                ],
+                correct: 0,
+                explain: "Cấu trúc bảng kế hoạch đầy đủ giúp theo dõi toàn diện dòng tiền vào – ra và tỷ lệ tích lũy."
+            },
+            {
+                q: "Tại sao những khoản chi nhỏ lẻ hằng ngày (như 15.000đ - 25.000đ tiền nước ngọt, ăn vặt) lại đáng lưu ý?",
+                options: [
+                    "Vì tích tiểu thành đại, cộng dồn cả tháng/năm sẽ trở thành một khoản tiền rất lớn",
+                    "Vì cửa hàng tạp hóa không thích bán đồ lẻ",
+                    "Vì đồ ăn vặt luôn đắt hơn sách giáo khoa",
+                    "Vì không thể ghi chép được các số tiền lẻ"
+                ],
+                correct: 0,
+                explain: "Hiệu ứng 'ly cà phê' (Latte Factor) cho thấy các khoản chi nhỏ lặp lại mỗi ngày có thể ngốn mất phần lớn tiền tiết kiệm."
+            },
+            {
+                q: "Khi mua một thiết bị phục vụ học tập (như máy tính cầm tay, laptop), tiêu chí nào nên đặt lên hàng đầu?",
+                options: [
+                    "Tính năng phù hợp nhu cầu học tập, độ bền, chế độ bảo hành và phù hợp ngân sách",
+                    "Màu sắc bắt mắt và thương hiệu đắt đỏ nhất",
+                    "Mua theo trào lưu của người nổi tiếng",
+                    "Chọn loại rẻ nhất mà không quan tâm có dùng được hay không"
+                ],
+                correct: 0,
+                explain: "Đầu tư cho công cụ học tập cần chú trọng hiệu năng sử dụng lâu dài và sự tương thích với ngân sách."
+            },
+            {
+                q: "Hành động nào sau đây thể hiện sự chia sẻ nhân văn trong kế hoạch tài chính cá nhân?",
+                options: [
+                    "Trích một phần nhỏ từ quỹ chi tiêu cá nhân để ủng hộ các hoạt động thiện nguyện, giúp đỡ bạn khó khăn",
+                    "Lấy tiền quỹ chung của lớp đi làm từ thiện danh nghĩa cá nhân",
+                    "Vay nợ để quyên góp vượt quá khả năng của bản thân",
+                    "Chỉ quyên góp khi có người quay phim, chụp ảnh"
+                ],
+                correct: 0,
+                explain: "Kế hoạch tài chính cân bằng không chỉ phục vụ bản thân mà còn nuôi dưỡng lòng nhân ái trong khả năng cho phép."
+            }
+        ];
+
+        // ==========================================
+        // 2. ÂM THANH HIỆU ỨNG (WEB AUDIO API)
+        // ==========================================
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type = 'sine', duration = 0.15, vol = 0.15) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        const SFX = {
+            dice: () => {
+                for (let i = 0; i < 4; i++) {
+                    setTimeout(() => playTone(250 + Math.random() * 350, 'triangle', 0.06, 0.12), i * 70);
+                }
+            },
+            correct: () => {
+                playTone(523.25, 'sine', 0.15, 0.2);
+                setTimeout(() => playTone(659.25, 'sine', 0.15, 0.2), 110);
+                setTimeout(() => playTone(783.99, 'sine', 0.3, 0.2), 220);
+            },
+            wrong: () => {
+                playTone(300, 'sawtooth', 0.2, 0.15);
+                setTimeout(() => playTone(210, 'sawtooth', 0.35, 0.15), 180);
+            },
+            move: () => {
+                playTone(440, 'sine', 0.09, 0.12);
+            },
+            kick: () => {
+                playTone(600, 'square', 0.1, 0.15);
+                setTimeout(() => playTone(200, 'sawtooth', 0.3, 0.2), 100);
+            },
+            win: () => {
+                const notes = [523, 659, 783, 1046];
+                notes.forEach((n, idx) => setTimeout(() => playTone(n, 'triangle', 0.25, 0.2), idx * 140));
+            }
+        };
+
+        window.toggleSound = () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('btn-sound').textContent = soundEnabled ? '🔊' : '🔇';
+            showToast(soundEnabled ? 'Đã bật âm thanh' : 'Đã tắt âm thanh');
+        };
+
+        // ==========================================
+        // 3. CẤU TRÚC BÀN CỜ CÁ NGỰA CHUẨN 15x15 (56 Ô VÒNG NGOÀI)
+        // ==========================================
+        // Tọa độ [row, col] (0..14) của 56 ô vòng chạy theo chiều kim đồng hồ
+        const OUTER_TRACK = [
+            // Bắt đầu từ cửa chuồng Đỏ (góc trên trái đi sang phải)
+            [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], // 0..4
+            [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6], // 5..10
+            [0, 7], // 11 (Cửa về chuồng Xanh Dương)
+            [0, 8], // 12 (Xuất phát Xanh Dương)
+            [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], // 13..17
+            [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14], // 18..23
+            [7, 14], // 24 (Cửa về chuồng Vàng)
+            [8, 14], // 25 (Xuất phát Vàng)
+            [8, 13], [8, 12], [8, 11], [8, 10], [8, 9], // 26..30
+            [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8], // 31..36
+            [14, 7], // 37 (Cửa về chuồng Xanh Lá)
+            [14, 6], // 38 (Xuất phát Xanh Lá)
+            [13, 6], [12, 6], [11, 6], [10, 6], [9, 6], // 39..43
+            [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0], // 44..49
+            [7, 0], // 50 (Cửa về chuồng Đỏ)
+            [6, 0]  // 51 -> Lùi lại 1 chút để đủ 52 ô chuẩn Ludo/Cá Ngựa!
+        ];
+        // Sửa chuẩn 52 ô vòng tròn (0..51):
+        // Team 0 (Đỏ): Start = 0 ([6,1]), HomeGate = 50 ([7,0])
+        // Team 1 (Xanh Dương): Start = 13 ([1,8]), HomeGate = 11 ([0,7])
+        // Team 2 (Vàng): Start = 26 ([8,13]), HomeGate = 24 ([7,14])
+        // Team 3 (Xanh Lá): Start = 39 ([13,6]), HomeGate = 37 ([14,7])
+
+        const TEAM_CONFIG = [
+            {
+                id: 0,
+                key: 'red',
+                emoji: '🔴',
+                colorHex: '#ef4444',
+                textClass: 'text-red-600',
+                borderClass: 'border-red-500',
+                bgClass: 'bg-team-red',
+                yardClass: 'yard-red',
+                startIdx: 0,
+                gateIdx: 50,
+                homeCells: [[7,1], [7,2], [7,3], [7,4], [7,5], [7,6]], // 6 ô đích (1..6)
+                yardSlots: [[2,2], [2,3], [3,2], [3,3]]
+            },
+            {
+                id: 1,
+                key: 'blue',
+                emoji: '🔵',
+                colorHex: '#3b82f6',
+                textClass: 'text-blue-600',
+                borderClass: 'border-blue-500',
+                bgClass: 'bg-team-blue',
+                yardClass: 'yard-blue',
+                startIdx: 13,
+                gateIdx: 11,
+                homeCells: [[1,7], [2,7], [3,7], [4,7], [5,7], [6,7]],
+                yardSlots: [[2,11], [2,12], [3,11], [3,12]]
+            },
+            {
+                id: 2,
+                key: 'yellow',
+                emoji: '🟡',
+                colorHex: '#eab308',
+                textClass: 'text-yellow-600',
+                borderClass: 'border-yellow-500',
+                bgClass: 'bg-team-yellow',
+                yardClass: 'yard-yellow',
+                startIdx: 26,
+                gateIdx: 24,
+                homeCells: [[7,13], [7,12], [7,11], [7,10], [7,9], [7,8]],
+                yardSlots: [[11,11], [11,12], [12,11], [12,12]]
+            },
+            {
+                id: 3,
+                key: 'green',
+                emoji: '🟢',
+                colorHex: '#22c55e',
+                textClass: 'text-green-600',
+                borderClass: 'border-green-500',
+                bgClass: 'bg-team-green',
+                yardClass: 'yard-green',
+                startIdx: 39,
+                gateIdx: 37,
+                homeCells: [[13,7], [12,7], [11,7], [10,7], [9,7], [8,7]],
+                yardSlots: [[11,2], [11,3], [12,2], [12,3]]
+            }
+        ];
+
+        // ==========================================
+        // 4. TRẠNG THÁI TRÒ CHƠI (GAME STATE)
+        // ==========================================
+        let gameState = {
+            mode: 'local', // 'local' | 'online'
+            status: 'playing', // 'playing' | 'ended'
+            turn: 0, // 0..3
+            phase: 'ROLL', // 'ROLL' | 'SELECT_HORSE' | 'QUIZ'
+            diceValue: null,
+            extraTurn: false,
+            usedQuestionIndices: [],
+            logs: [],
+            players: [
+                // pos: -1 (trong chuồng), 0..50 (số bước đã đi tính từ startIdx), 101..106 (ô đích 1..6)
+                { id: 0, name: 'Nhóm 1 (Đỏ)', type: 'human', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                { id: 1, name: 'Nhóm 2 (Xanh Dương)', type: 'human', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                { id: 2, name: 'Nhóm 3 (Vàng)', type: 'human', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                { id: 3, name: 'Nhóm 4 (Xanh Lá)', type: 'human', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 }
+            ]
+        };
+
+        // Pending Move before Quiz confirmation
+        let pendingMove = null; // { horseIdx, moveType: 'DEPLOY' | 'MOVE' | 'HOME_ENTER' | 'HOME_STEP', targetPos, kickedInfo }
+        let currentQuestion = null;
+        let currentQuizResult = null;
+
+        // Timer State (45 minutes = 2700 seconds)
+        let remainingSeconds = 45 * 60;
+        let timerRunning = false;
+        let timerInterval = null;
+
+        // Online Firebase State
+        let db = null, auth = null, currentUser = null;
+        let roomCode = null;
+        let myTeamId = null; // 0..3 in online mode
+        let unsubscribeRoom = null;
+
+        // ==========================================
+        // 5. KHỞI TẠO FIREBASE (NẾU CÓ CẤU HÌNH)
+        // ==========================================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ludo-finance-edu';
+        async function initFirebase() {
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                        currentUser = cred.user;
+                    } else {
+                        const cred = await signInAnonymously(auth);
+                        currentUser = cred.user;
+                    }
+                }
+            } catch (err) {
+                console.warn("Chế độ offline/local sẵn sàng:", err.message);
+            }
+        }
+        initFirebase();
+
+        // ==========================================
+        // 6. VẼ BÀN CỜ & CẬP NHẬT GIAO DIỆN
+        // ==========================================
+        function buildBoardGrid() {
+            const board = document.getElementById('ludo-board');
+            board.innerHTML = '';
+
+            // Tạo ma trận 15x15 ô
+            for (let r = 0; r < 15; r++) {
+                for (let c = 0; c < 15; c++) {
+                    // Bỏ qua vùng trung tâm 3x3 (6..8, 6..8) để đặt vương miện
+                    if (r >= 6 && r <= 8 && c >= 6 && c <= 8) {
+                        if (r === 6 && c === 6) {
+                            const crown = document.createElement('div');
+                            crown.className = 'center-crown rounded-lg shadow-inner';
+                            crown.innerHTML = `<div class="bg-white/95 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl shadow">🏆</div>`;
+                            board.appendChild(crown);
+                        }
+                        continue;
+                    }
+
+                    const cell = document.createElement('div');
+                    cell.id = `cell-${r}-${c}`;
+                    cell.className = 'cell bg-white';
+
+                    // Tô màu 4 chuồng lớn ở 4 góc
+                    if (r < 6 && c < 6) cell.classList.add('yard-red');
+                    else if (r < 6 && c > 8) cell.classList.add('yard-blue');
+                    else if (r > 8 && c > 8) cell.classList.add('yard-yellow');
+                    else if (r > 8 && c < 6) cell.classList.add('yard-green');
+
+                    // Tô màu các ô xuất phát và đường về đích
+                    TEAM_CONFIG.forEach(t => {
+                        const [sr, sc] = OUTER_TRACK[t.startIdx];
+                        if (r === sr && c === sc) {
+                            cell.classList.remove('bg-white');
+                            cell.classList.add(t.bgClass);
+                            cell.innerHTML = `<span class="opacity-80 text-[10px]">★</span>`;
+                        }
+                        t.homeCells.forEach(([hr, hc], hIdx) => {
+                            if (r === hr && c === hc) {
+                                cell.classList.remove('bg-white');
+                                cell.classList.add(t.bgClass);
+                                cell.innerHTML = `<span class="opacity-90 text-[10px] font-extrabold">${hIdx + 1}</span>`;
+                            }
+                        });
+                    });
+
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        // Tính tọa độ [r, c] của một quân cờ dựa trên teamId và pos
+        function getHorseCoords(teamId, horseIdx, pos) {
+            const cfg = TEAM_CONFIG[teamId];
+            if (pos === -1) {
+                return cfg.yardSlots[horseIdx];
+            }
+            if (pos >= 101 && pos <= 106) {
+                return cfg.homeCells[pos - 101];
+            }
+            // Đang trên vòng đua 0..50
+            const globalTrackIdx = (cfg.startIdx + pos) % 52;
+            return OUTER_TRACK[globalTrackIdx];
+        }
+
+        // Kiểm tra nước đi hợp lệ của từng quân cờ
+        function getValidMovesForTeam(teamId, dice) {
+            const player = gameState.players[teamId];
+            const moves = [];
+            if (!dice || player.type === 'off') return moves;
+
+            const canDeploy = (dice === 1 || dice === 6);
+
+            player.horses.forEach((pos, hIdx) => {
+                // Trường hợp 1: Quân đang trong chuồng (-1)
+                if (pos === -1) {
+                    if (canDeploy) {
+                        // Kiểm tra ô xuất phát (pos = 0) có bị quân mình chặn không
+                        const ownAtStart = player.horses.some((p, i) => i !== hIdx && p === 0);
+                        if (!ownAtStart) {
+                            const kicked = findEnemyAtGlobalPos(teamId, TEAM_CONFIG[teamId].startIdx);
+                            moves.push({
+                                horseIdx: hIdx,
+                                moveType: 'DEPLOY',
+                                label: 'Xuất chuồng',
+                                targetPos: 0,
+                                kickedInfo: kicked
+                            });
+                        }
+                    }
+                    return;
+                }
+
+                // Trường hợp 2: Quân đang ở trên đường đua (0..50)
+                if (pos >= 0 && pos <= 50) {
+                    const nextPos = pos + dice;
+                    // Nếu chạm đúng cửa chuồng (50) hoặc vượt qua cửa chuồng -> vào chuồng đích
+                    if (nextPos <= 50) {
+                        // Kiểm tra có bị quân mình chặn đường hoặc đứng ở đích đến không
+                        const blockedByOwn = player.horses.some((p, i) => i !== hIdx && p > pos && p <= nextPos);
+                        if (!blockedByOwn) {
+                            const targetGlobal = (TEAM_CONFIG[teamId].startIdx + nextPos) % 52;
+                            const kicked = findEnemyAtGlobalPos(teamId, targetGlobal);
+                            moves.push({
+                                horseIdx: hIdx,
+                                moveType: 'MOVE',
+                                label: `Tiến ${dice} bước`,
+                                targetPos: nextPos,
+                                kickedInfo: kicked
+                            });
+                        }
+                    } else {
+                        // Tiến vào các ô chuồng đích (101..106)
+                        // Từ pos (ví dụ 48), cần (50 - pos) bước để tới cửa chuồng, phần dư vào ô đích
+                        // Quy tắc chuẩn cá ngựa VN: Đứng ở cửa chuồng (pos === 50) đổ được số nào (1..6) thì lên thẳng ô đích tương ứng (101..106)
+                        if (pos === 50) {
+                            const targetHome = 100 + dice; // 101..106
+                            const blockedInHome = player.horses.some((p, i) => i !== hIdx && p >= 101 && p <= targetHome);
+                            if (!blockedInHome) {
+                                moves.push({
+                                    horseIdx: hIdx,
+                                    moveType: 'HOME_ENTER',
+                                    label: `Về ô đích số ${dice}`,
+                                    targetPos: targetHome,
+                                    kickedInfo: null
+                                });
+                            }
+                        } else if (nextPos === 51) {
+                            // Cho phép tiến sát vào cửa chuồng nếu cần, hoặc vào ô 1 nếu vừa đúng
+                            const targetHome = 101;
+                            const blockedInHome = player.horses.some((p, i) => i !== hIdx && p === 101);
+                            if (!blockedInHome) {
+                                moves.push({
+                                    horseIdx: hIdx,
+                                    moveType: 'HOME_ENTER',
+                                    label: 'Vào ô đích số 1',
+                                    targetPos: 101,
+                                    kickedInfo: null
+                                });
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Trường hợp 3: Quân đã ở trong chuồng đích (101..105), có thể leo lên ô cao hơn (tối đa 106)
+                if (pos >= 101 && pos < 106) {
+                    const targetHome = pos + dice;
+                    if (targetHome <= 106) {
+                        const blockedInHome = player.horses.some((p, i) => i !== hIdx && p > pos && p <= targetHome);
+                        if (!blockedInHome) {
+                            moves.push({
+                                horseIdx: hIdx,
+                                moveType: 'HOME_STEP',
+                                label: `Tiến lên ô đích ${targetHome - 100}`,
+                                targetPos: targetHome,
+                                kickedInfo: null
+                            });
+                        }
+                    }
+                }
+            });
+
+            return moves;
+        }
+
+        function findEnemyAtGlobalPos(myTeam, globalIdx) {
+            for (let t = 0; t < 4; t++) {
+                if (t === myTeam || gameState.players[t].type === 'off') continue;
+                const p = gameState.players[t];
+                for (let h = 0; h < 4; h++) {
+                    const pos = p.horses[h];
+                    if (pos >= 0 && pos <= 50) {
+                        const enemyGlobal = (TEAM_CONFIG[t].startIdx + pos) % 52;
+                        if (enemyGlobal === globalIdx) {
+                            return { teamId: t, horseIdx: h };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Render toàn bộ quân cờ, lượt đi, bảng xếp hạng
+        function renderAll() {
+            // 1. Xóa các quân cờ cũ trên bàn
+            document.querySelectorAll('.horse-piece').forEach(el => el.remove());
+
+            const activeTeam = gameState.turn;
+            const validMoves = (gameState.phase === 'SELECT_HORSE') ? getValidMovesForTeam(activeTeam, gameState.diceValue) : [];
+            const isMyTurn = canControlCurrentTurn();
+
+            // 2. Vẽ lại 4 quân cho mỗi đội đang tham gia
+            gameState.players.forEach((player, tId) => {
+                if (player.type === 'off') return;
+                const cfg = TEAM_CONFIG[tId];
+
+                player.horses.forEach((pos, hIdx) => {
+                    const [r, c] = getHorseCoords(tId, hIdx, pos);
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    if (!cell) return;
+
+                    const piece = document.createElement('div');
+                    piece.className = `horse-piece ${cfg.bgClass}`;
+                    piece.innerHTML = '🐴';
+
+                    // Nếu đang chờ chọn quân và quân này có nước đi hợp lệ
+                    const moveObj = validMoves.find(m => m.horseIdx === hIdx);
+                    if (tId === activeTeam && moveObj && isMyTurn) {
+                        piece.classList.add('horse-selectable');
+                        piece.title = `${moveObj.label} (Bấm để trả lời câu hỏi & đi)`;
+                        piece.onclick = (e) => {
+                            e.stopPropagation();
+                            initiateMoveWithQuiz(moveObj);
+                        };
+                    }
+
+                    cell.appendChild(piece);
+                });
+            });
+
+            // 3. Cập nhật thẻ lượt đi & Xúc xắc
+            const curPlayer = gameState.players[activeTeam];
+            const curCfg = TEAM_CONFIG[activeTeam];
+            const turnCard = document.getElementById('turn-card');
+            turnCard.className = `bg-white rounded-2xl p-4 sm:p-5 shadow-md border-2 ${curCfg.borderClass} transition-colors duration-300`;
+
+            const turnTitle = document.getElementById('current-turn-name');
+            turnTitle.className = `text-xl sm:text-2xl font-extrabold ${curCfg.textClass} flex items-center gap-2`;
+            turnTitle.textContent = `${curCfg.emoji} ${curPlayer.name} ${curPlayer.type === 'bot' ? '(Bot)' : ''}`;
+
+            const diceBtn = document.getElementById('dice-btn');
+            const instr = document.getElementById('action-instruction');
+            const sub = document.getElementById('action-subtext');
+            const skipBtn = document.getElementById('btn-skip-turn');
+
+            diceBtn.textContent = gameState.diceValue ? getDiceFace(gameState.diceValue) : '🎲';
+
+            if (gameState.status === 'ended') {
+                diceBtn.classList.add('disabled');
+                instr.textContent = 'Trận đấu đã kết thúc!';
+                sub.textContent = 'Xem bảng tổng kết kết quả thi đua.';
+                skipBtn.classList.add('hidden');
+            } else if (!isMyTurn) {
+                diceBtn.classList.add('disabled');
+                instr.textContent = curPlayer.type === 'bot' ? '🤖 Máy đang suy nghĩ...' : `Đang chờ ${curPlayer.name} thao tác...`;
+                sub.textContent = 'Các nhóm khác quan sát và chuẩn bị câu trả lời!';
+                skipBtn.classList.add('hidden');
+            } else {
+                if (gameState.phase === 'ROLL') {
+                    diceBtn.classList.remove('disabled');
+                    instr.textContent = 'Bấm vào xúc xắc để tung!';
+                    sub.textContent = gameState.extraTurn ? '🎉 Bạn được thưởng thêm 1 lượt tung!' : 'Tung được 1 hoặc 6 sẽ được xuất quân & thêm lượt.';
+                    skipBtn.classList.add('hidden');
+                } else if (gameState.phase === 'SELECT_HORSE') {
+                    diceBtn.classList.add('disabled');
+                    if (validMoves.length > 0) {
+                        instr.textContent = `Bạn tung được ${gameState.diceValue} điểm! Hãy chọn quân ngựa nhấp nháy.`;
+                        sub.textContent = 'Sau khi chọn quân, hãy trả lời đúng câu hỏi Kế hoạch tài chính để di chuyển.';
+                        skipBtn.classList.add('hidden');
+                    } else {
+                        instr.textContent = `Tung được ${gameState.diceValue} điểm nhưng chưa có quân đi hợp lệ!`;
+                        sub.textContent = 'Bấm nút bên dưới để chuyển lượt cho đội kế tiếp.';
+                        skipBtn.classList.remove('hidden');
+                    }
+                }
+            }
+
+            // 4. Cập nhật Bảng xếp hạng trực tiếp
+            renderLeaderboard();
+
+            // 5. Cập nhật Nhật ký
+            const logEl = document.getElementById('game-log');
+            logEl.innerHTML = gameState.logs.slice(-15).reverse().map(l => `<div class="p-2 bg-slate-50 rounded-lg border border-slate-100">${l}</div>`).join('');
+        }
+
+        function getDiceFace(num) {
+            const faces = ['', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣'];
+            return faces[num] || num;
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            const activePlayers = gameState.players
+                .filter(p => p.type !== 'off')
+                .map(p => {
+                    const finished = p.horses.filter(pos => pos >= 101).length;
+                    return { ...p, finishedCount: finished };
+                })
+                .sort((a, b) => b.score - a.score || b.finishedCount - a.finishedCount);
+
+            list.innerHTML = activePlayers.map((p, rank) => {
+                const cfg = TEAM_CONFIG[p.id];
+                const isTurn = (p.id === gameState.turn && gameState.status === 'playing');
+                return `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${isTurn ? 'bg-amber-50/70 border-amber-400 shadow-sm' : 'bg-slate-50 border-slate-200'}">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-extrabold flex items-center justify-center">${rank + 1}</span>
+                            <div>
+                                <div class="font-bold text-sm ${cfg.textClass} flex items-center gap-1.5">
+                                    <span>${cfg.emoji} ${p.name}</span>
+                                    ${isTurn ? '<span class="text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold">ĐANG ĐI</span>' : ''}
+                                </div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">
+                                    🏁 Về đích: <b>${p.finishedCount}/4</b> • ✅ Đúng: <b>${p.correctCount}</b> câu
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-lg font-extrabold text-slate-900">${p.score}</span>
+                            <span class="block text-[10px] font-bold text-slate-400 uppercase">Điểm</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function canControlCurrentTurn() {
+            if (gameState.status !== 'playing') return false;
+            const curP = gameState.players[gameState.turn];
+            if (curP.type === 'bot') return false;
+            if (gameState.mode === 'online') {
+                return myTeamId === gameState.turn;
+            }
+            return true;
+        }
+
+        // ==========================================
+        // 7. LOGIC TUNG XÚC XẮC & CHỌN QUÂN
+        // ==========================================
+        window.handleDiceClick = async () => {
+            if (!canControlCurrentTurn() || gameState.phase !== 'ROLL') return;
+
+            const diceBtn = document.getElementById('dice-btn');
+            diceBtn.classList.add('dice-rolling', 'disabled');
+            SFX.dice();
+
+            setTimeout(async () => {
+                diceBtn.classList.remove('dice-rolling');
+                const rolled = Math.floor(Math.random() * 6) + 1;
+                gameState.diceValue = rolled;
+                gameState.extraTurn = (rolled === 1 || rolled === 6);
+                gameState.phase = 'SELECT_HORSE';
+
+                const p = gameState.players[gameState.turn];
+                addLog(`${TEAM_CONFIG[p.id].emoji} <b>${p.name}</b> tung được <b>${rolled}</b> điểm!`);
+
+                await syncAndRender();
+            }, 500);
+        };
+
+        window.skipTurnManual = async () => {
+            if (!canControlCurrentTurn()) return;
+            const p = gameState.players[gameState.turn];
+            addLog(`⏭️ <b>${p.name}</b> không có nước đi hợp lệ, chuyển lượt.`);
+            await advanceTurn(false);
+        };
+
+        // Bắt đầu quy trình trả lời câu hỏi trước khi đi quân
+        function initiateMoveWithQuiz(moveObj) {
+            pendingMove = moveObj;
+            gameState.phase = 'QUIZ';
+            openQuizModal(moveObj);
+        }
+
+        function openQuizModal(moveObj) {
+            // Lấy câu hỏi chưa dùng gần đây
+            if (gameState.usedQuestionIndices.length >= QUESTION_BANK.length) {
+                gameState.usedQuestionIndices = [];
+            }
+            let available = [];
+            for (let i = 0; i < QUESTION_BANK.length; i++) {
+                if (!gameState.usedQuestionIndices.includes(i)) available.push(i);
+            }
+            const chosenIdx = available[Math.floor(Math.random() * available.length)];
+            gameState.usedQuestionIndices.push(chosenIdx);
+            currentQuestion = QUESTION_BANK[chosenIdx];
+            currentQuizResult = null;
+
+            // Xáo trộn thứ tự 4 đáp án để tăng tính công bằng
+            const mappedOptions = currentQuestion.options.map((text, idx) => ({
+                text,
+                isCorrect: idx === currentQuestion.correct
+            }));
+            for (let i = mappedOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+            }
+
+            document.getElementById('quiz-action-badge').textContent = `Hành động: ${moveObj.label}`;
+            document.getElementById('quiz-question').textContent = currentQuestion.q;
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('btn-quiz-continue').classList.add('hidden');
+
+            const optContainer = document.getElementById('quiz-options');
+            const letters = ['A', 'B', 'C', 'D'];
+            optContainer.innerHTML = mappedOptions.map((opt, i) => `
+                <button onclick="selectQuizAnswer(this, ${opt.isCorrect})" data-correct="${opt.isCorrect}"
+                    class="quiz-opt-btn w-full text-left p-3.5 rounded-2xl border-2 border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition flex items-start gap-3 font-medium text-sm sm:text-base text-slate-800">
+                    <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 font-extrabold flex items-center justify-center shrink-0 text-xs mt-0.5">${letters[i]}</span>
+                    <span>${opt.text}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('quiz-modal').classList.remove('hidden');
+        }
+
+        window.selectQuizAnswer = (btnEl, isCorrect) => {
+            if (currentQuizResult !== null) return; // Đã chọn rồi
+            currentQuizResult = isCorrect;
+
+            const allBtns = document.querySelectorAll('.quiz-opt-btn');
+            allBtns.forEach(b => {
+                b.disabled = true;
+                b.classList.remove('hover:border-indigo-500', 'hover:bg-indigo-50/50');
+                if (b.dataset.correct === 'true') {
+                    b.classList.remove('border-slate-200');
+                    b.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-900', 'font-bold');
+                } else if (b === btnEl && !isCorrect) {
+                    b.classList.remove('border-slate-200');
+                    b.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-900');
+                }
+            });
+
+            const fbBox = document.getElementById('quiz-feedback');
+            const fbTitle = document.getElementById('quiz-feedback-title');
+            const fbDesc = document.getElementById('quiz-feedback-desc');
+            fbBox.classList.remove('hidden', 'bg-emerald-100', 'bg-rose-100');
+
+            if (isCorrect) {
+                SFX.correct();
+                fbBox.classList.add('bg-emerald-100');
+                fbTitle.className = 'font-extrabold text-base mb-1 text-emerald-800';
+                fbTitle.textContent = '🎉 CHÍNH XÁC! (+10 điểm kiến thức & Được phép đi quân)';
+            } else {
+                SFX.wrong();
+                fbBox.classList.add('bg-rose-100');
+                fbTitle.className = 'font-extrabold text-base mb-1 text-rose-800';
+                fbTitle.textContent = '❌ CHƯA CHÍNH XÁC! (Quân cờ giữ nguyên vị trí & Mất lượt này)';
+            }
+            fbDesc.textContent = `Giải thích: ${currentQuestion.explain}`;
+
+            const contBtn = document.getElementById('btn-quiz-continue');
+            contBtn.textContent = isCorrect ? 'Thực hiện nước đi ngay ➡️' : 'Đóng & Chuyển lượt ⏭️';
+            contBtn.classList.remove('hidden');
+        };
+
+        window.confirmQuizResult = async () => {
+            document.getElementById('quiz-modal').classList.add('hidden');
+            const p = gameState.players[gameState.turn];
+            const cfg = TEAM_CONFIG[p.id];
+
+            if (currentQuizResult && pendingMove) {
+                // Cộng điểm kiến thức
+                p.score += 10;
+                p.correctCount += 1;
+
+                // Di chuyển quân
+                p.horses[pendingMove.horseIdx] = pendingMove.targetPos;
+                SFX.move();
+
+                let logText = `✅ <b>${p.name}</b> trả lời đúng & thực hiện: <b>${pendingMove.label}</b> (+10đ).`;
+
+                // Kiểm tra đá ngựa đối phương
+                if (pendingMove.kickedInfo) {
+                    const enemy = gameState.players[pendingMove.kickedInfo.teamId];
+                    enemy.horses[pendingMove.kickedInfo.horseIdx] = -1;
+                    p.score += 20;
+                    SFX.kick();
+                    logText += ` ⚔️ Đá ngựa của <b>${enemy.name}</b> về chuồng (+20đ)!`;
+                }
+
+                // Kiểm tra về đích
+                if (pendingMove.moveType === 'HOME_ENTER') {
+                    p.score += 50;
+                    logText += ` 🏁 Đưa quân vào chuồng đích (+50đ)!`;
+                }
+
+                addLog(logText);
+
+                // Kiểm tra thắng tuyệt đối (cả 4 quân đều đã vào chuồng đích 101..106)
+                const allFinished = p.horses.every(pos => pos >= 101);
+                if (allFinished) {
+                    p.score += 100;
+                    addLog(`🏆 <b>${p.name}</b> đã đưa toàn bộ 4 quân về đích và giành chiến thắng chung cuộc!`);
+                    await endGameFinal(`🏆 ${p.name} VỀ ĐÍCH HOÀN HẢO!`);
+                    return;
+                }
+
+                // Nếu tung được 1 hoặc 6 và trả lời đúng -> được giữ lượt tung tiếp!
+                const keepTurn = gameState.extraTurn;
+                pendingMove = null;
+                await advanceTurn(keepTurn);
+            } else {
+                // Trả lời sai -> Không di chuyển & mất lượt (kể cả khi tung được 6)
+                addLog(`❌ <b>${p.name}</b> trả lời sai câu hỏi tài chính nên mất lượt đi.`);
+                pendingMove = null;
+                await advanceTurn(false);
+            }
+        };
+
+        async function advanceTurn(keepSamePlayer) {
+            gameState.diceValue = null;
+            gameState.phase = 'ROLL';
+
+            if (!keepSamePlayer) {
+                gameState.extraTurn = false;
+                // Tìm đội tiếp theo đang hoạt động
+                for (let step = 1; step <= 4; step++) {
+                    const nextIdx = (gameState.turn + step) % 4;
+                    if (gameState.players[nextIdx].type !== 'off') {
+                        gameState.turn = nextIdx;
+                        break;
+                    }
+                }
+            }
+
+            await syncAndRender();
+            checkBotTurn();
+        }
+
+        // ==========================================
+        // 8. TRÍ TUỆ NHÂN TẠO CHO ĐỘI BOT (NẾU BẬT)
+        // ==========================================
+        function checkBotTurn() {
+            if (gameState.status !== 'playing') return;
+            const curP = gameState.players[gameState.turn];
+            if (curP.type !== 'bot') return;
+            // Trong chế độ online, chỉ chủ phòng (Team 0) điều khiển Bot
+            if (gameState.mode === 'online' && myTeamId !== 0) return;
+
+            setTimeout(async () => {
+                if (gameState.phase === 'ROLL') {
+                    SFX.dice();
+                    const rolled = Math.floor(Math.random() * 6) + 1;
+                    gameState.diceValue = rolled;
+                    gameState.extraTurn = (rolled === 1 || rolled === 6);
+                    gameState.phase = 'SELECT_HORSE';
+                    addLog(`🤖 <b>${curP.name}</b> tung được <b>${rolled}</b> điểm.`);
+                    await syncAndRender();
+                    checkBotTurn();
+                } else if (gameState.phase === 'SELECT_HORSE') {
+                    const moves = getValidMovesForTeam(gameState.turn, gameState.diceValue);
+                    if (moves.length === 0) {
+                        addLog(`🤖 <b>${curP.name}</b> không có nước đi, bỏ qua lượt.`);
+                        await advanceTurn(false);
+                    } else {
+                        // Bot chọn nước đi ưu tiên: Đá ngựa > Về đích > Xuất chuồng > Đi xa nhất
+                        moves.sort((a, b) => (b.kickedInfo ? 10 : 0) - (a.kickedInfo ? 10 : 0));
+                        const chosen = moves[0];
+                        // Bot tự động trả lời đúng 75% câu hỏi
+                        const botCorrect = Math.random() < 0.75;
+                        if (botCorrect) {
+                            curP.score += 10;
+                            curP.correctCount += 1;
+                            curP.horses[chosen.horseIdx] = chosen.targetPos;
+                            let msg = `🤖 <b>${curP.name}</b> trả lời đúng & ${chosen.label.toLowerCase()} (+10đ).`;
+                            if (chosen.kickedInfo) {
+                                const enemy = gameState.players[chosen.kickedInfo.teamId];
+                                enemy.horses[chosen.kickedInfo.horseIdx] = -1;
+                                curP.score += 20;
+                                msg += ` ⚔️ Đá ngựa <b>${enemy.name}</b>!`;
+                            }
+                            if (chosen.moveType === 'HOME_ENTER') curP.score += 50;
+                            addLog(msg);
+                            await advanceTurn(gameState.extraTurn);
+                        } else {
+                            addLog(`🤖 <b>${curP.name}</b> trả lời chưa đúng câu hỏi nên mất lượt.`);
+                            await advanceTurn(false);
+                        }
+                    }
+                }
+            }, 1100);
+        }
+
+        function addLog(htmlText) {
+            gameState.logs.push(htmlText);
+            if (gameState.logs.length > 40) gameState.logs.shift();
+        }
+
+        // ==========================================
+        // 9. ĐỒNG HỒ ĐẾM NGƯỢC 45:00 TIẾT HỌC
+        // ==========================================
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerRunning = true;
+            document.getElementById('btn-timer-toggle').textContent = '⏸️';
+
+            timerInterval = setInterval(() => {
+                if (!timerRunning || gameState.status === 'ended') return;
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    endGameFinal('⏰ HẾT 45 PHÚT TIẾT HỌC!');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            const el = document.getElementById('timer-display');
+            el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            if (remainingSeconds <= 300) {
+                el.classList.remove('text-emerald-400');
+                el.classList.add('text-rose-400', 'animate-pulse');
+            }
+        }
+
+        window.toggleTimer = () => {
+            timerRunning = !timerRunning;
+            document.getElementById('btn-timer-toggle').textContent = timerRunning ? '⏸️' : '▶️';
+            showToast(timerRunning ? 'Tiếp tục đếm giờ tiết học' : 'Đã tạm dừng đồng hồ');
+        };
+
+        window.resetTimer = () => {
+            remainingSeconds = 45 * 60;
+            updateTimerDisplay();
+            showToast('Đã đặt lại đồng hồ về 45:00');
+        };
+
+        window.endGameByTime = () => {
+            endGameFinal('📊 TỔNG KẾT XẾP HẠNG TIẾT HỌC');
+        };
+
+        async function endGameFinal(titleText) {
+            gameState.status = 'ended';
+            timerRunning = false;
+            SFX.win();
+            await syncAndRender();
+
+            document.getElementById('summary-title').textContent = titleText;
+            const ranked = gameState.players
+                .filter(p => p.type !== 'off')
+                .map(p => ({ ...p, finishedCount: p.horses.filter(pos => pos >= 101).length }))
+                .sort((a, b) => b.score - a.score || b.finishedCount - a.finishedCount);
+
+            const medals = ['🥇', '🥈', '🥉', '🏅'];
+            document.getElementById('final-rankings').innerHTML = ranked.map((p, i) => {
+                const cfg = TEAM_CONFIG[p.id];
+                return `
+                    <div class="flex items-center justify-between p-3.5 rounded-2xl border-2 ${i === 0 ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50'}">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">${medals[i] || '🏅'}</span>
+                            <div>
+                                <div class="font-extrabold text-base ${cfg.textClass}">${cfg.emoji} ${p.name}</div>
+                                <div class="text-xs text-slate-600">Quân về đích: <b>${p.finishedCount}/4</b> • Trả lời đúng: <b>${p.correctCount}</b> câu</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-2xl font-extrabold text-slate-900">${p.score}</span>
+                            <span class="block text-[10px] font-bold text-slate-500">ĐIỂM</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('summary-modal').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // 10. CÀI ĐẶT CHẾ ĐỘ CHƠI LOCAL & ONLINE (FIRESTORE)
+        // ==========================================
+        window.showSetupModal = () => {
+            document.getElementById('setup-modal').classList.remove('hidden');
+        };
+
+        window.switchSetupTab = (tab) => {
+            const isLocal = tab === 'local';
+            document.getElementById('panel-local').classList.toggle('hidden', !isLocal);
+            document.getElementById('panel-online').classList.toggle('hidden', isLocal);
+
+            document.getElementById('tab-local').className = isLocal
+                ? 'py-2.5 px-4 rounded-xl font-bold text-sm bg-white text-slate-900 shadow-sm transition'
+                : 'py-2.5 px-4 rounded-xl font-bold text-sm text-slate-600 hover:text-slate-900 transition';
+
+            document.getElementById('tab-online').className = !isLocal
+                ? 'py-2.5 px-4 rounded-xl font-bold text-sm bg-white text-slate-900 shadow-sm transition'
+                : 'py-2.5 px-4 rounded-xl font-bold text-sm text-slate-600 hover:text-slate-900 transition';
+        };
+
+        window.startLocalGame = () => {
+            let activeCount = 0;
+            for (let i = 0; i < 4; i++) {
+                const nameVal = document.getElementById(`name-${i}`).value.trim() || `Nhóm ${i + 1}`;
+                const typeVal = document.getElementById(`type-${i}`).value;
+                gameState.players[i] = {
+                    id: i,
+                    name: nameVal,
+                    type: typeVal,
+                    uid: null,
+                    horses: [-1, -1, -1, -1],
+                    score: 0,
+                    correctCount: 0,
+                    finishedCount: 0
+                };
+                if (typeVal !== 'off') activeCount++;
+            }
+
+            if (activeCount < 2) {
+                showToast('⚠️ Cần ít nhất 2 đội tham gia thi đấu!');
+                return;
+            }
+
+            gameState.mode = 'local';
+            gameState.status = 'playing';
+            gameState.turn = gameState.players.findIndex(p => p.type !== 'off');
+            gameState.phase = 'ROLL';
+            gameState.diceValue = null;
+            gameState.logs = ['🎓 Bắt đầu tiết học 45 phút! Chúc các nhóm chinh phục kiến thức tài chính cá nhân.'];
+
+            document.getElementById('room-badge').classList.add('hidden');
+            document.getElementById('online-role-badge').classList.add('hidden');
+            document.getElementById('setup-modal').classList.add('hidden');
+
+            buildBoardGrid();
+            renderAll();
+            startTimer();
+            checkBotTurn();
+        };
+
+        // --- ONLINE MULTIPLAYER VIA FIRESTORE ---
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+
+        window.createOnlineRoom = async () => {
+            const msgEl = document.getElementById('online-status-msg');
+            if (!db || !currentUser) {
+                msgEl.textContent = '⚠️ Máy chủ trực tuyến đang khởi tạo, vui lòng thử lại sau 2 giây hoặc dùng chế độ Chơi Tại Lớp.';
+                return;
+            }
+
+            const playerName = document.getElementById('online-player-name').value.trim() || 'Nhóm Chủ Phòng (Đỏ)';
+            const newCode = generateRoomCode();
+            roomCode = newCode;
+            myTeamId = 0;
+
+            gameState = {
+                mode: 'online',
+                status: 'playing',
+                turn: 0,
+                phase: 'ROLL',
+                diceValue: null,
+                extraTurn: false,
+                usedQuestionIndices: [],
+                logs: [`🌐 Phòng ${newCode} đã được tạo bởi ${playerName}. Chia sẻ mã phòng cho các nhóm khác!`],
+                players: [
+                    { id: 0, name: playerName, type: 'human', uid: currentUser.uid, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                    { id: 1, name: 'Đang chờ Nhóm 2...', type: 'off', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                    { id: 2, name: 'Đang chờ Nhóm 3...', type: 'off', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 },
+                    { id: 3, name: 'Đang chờ Nhóm 4...', type: 'off', uid: null, horses: [-1, -1, -1, -1], score: 0, correctCount: 0, finishedCount: 0 }
+                ]
+            };
+
+            try {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ludo_rooms', newCode);
+                await setDoc(roomRef, {
+                    stateJson: JSON.stringify(gameState),
+                    updatedAt: Date.now()
+                });
+
+                enterOnlineRoomUI(newCode, 0);
+                subscribeToRoom(newCode);
+            } catch (err) {
+                msgEl.textContent = 'Lỗi tạo phòng: ' + err.message;
+            }
+        };
+
+        window.joinOnlineRoom = async () => {
+            const msgEl = document.getElementById('online-status-msg');
+            if (!db || !currentUser) {
+                msgEl.textContent = '⚠️ Máy chủ trực tuyến chưa sẵn sàng.';
+                return;
+            }
+
+            const inputCode = document.getElementById('join-room-input').value.trim().toUpperCase();
+            if (inputCode.length !== 6) {
+                msgEl.textContent = '⚠️ Vui lòng nhập đúng mã phòng gồm 6 ký tự.';
+                return;
+            }
+
+            const playerName = document.getElementById('online-player-name').value.trim() || 'Nhóm Khách';
+
+            try {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ludo_rooms', inputCode);
+                const snap = await getDoc(roomRef);
+
+                if (!snap.exists()) {
+                    msgEl.textContent = '❌ Không tìm thấy phòng với mã này!';
+                    return;
+                }
+
+                const remoteState = JSON.parse(snap.data().stateJson);
+
+                // Kiểm tra xem user đã ở trong phòng chưa
+                let assignedSeat = remoteState.players.findIndex(p => p.uid === currentUser.uid);
+
+                if (assignedSeat === -1) {
+                    // Tìm ghế trống (type === 'off')
+                    assignedSeat = remoteState.players.findIndex(p => p.type === 'off');
+                    if (assignedSeat === -1) {
+                        msgEl.textContent = '⚠️ Phòng đã đủ 4 đội tham gia!';
+                        return;
+                    }
+
+                    remoteState.players[assignedSeat] = {
+                        id: assignedSeat,
+                        name: playerName,
+                        type: 'human',
+                        uid: currentUser.uid,
+                        horses: [-1, -1, -1, -1],
+                        score: 0,
+                        correctCount: 0,
+                        finishedCount: 0
+                    };
+                    remoteState.logs.push(`👋 ${TEAM_CONFIG[assignedSeat].emoji} <b>${playerName}</b> đã tham gia bàn cờ!`);
+
+                    await updateDoc(roomRef, {
+                        stateJson: JSON.stringify(remoteState),
+                        updatedAt: Date.now()
+                    });
+                }
+
+                roomCode = inputCode;
+                myTeamId = assignedSeat;
+                gameState = remoteState;
+
+                enterOnlineRoomUI(inputCode, assignedSeat);
+                subscribeToRoom(inputCode);
+            } catch (err) {
+                msgEl.textContent = 'Lỗi vào phòng: ' + err.message;
+            }
+        };
+
+        function enterOnlineRoomUI(code, seatId) {
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('room-badge').classList.remove('hidden');
+            document.getElementById('display-room-code').textContent = code;
+
+            const roleBadge = document.getElementById('online-role-badge');
+            roleBadge.classList.remove('hidden');
+            roleBadge.textContent = `Bạn điều khiển: ${TEAM_CONFIG[seatId].emoji} ${gameState.players[seatId].name}`;
+
+            buildBoardGrid();
+            renderAll();
+            startTimer();
+        }
+
+        function subscribeToRoom(code) {
+            if (unsubscribeRoom) unsubscribeRoom();
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ludo_rooms', code);
+            unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const newState = JSON.parse(docSnap.data().stateJson);
+                    gameState = newState;
+                    renderAll();
+                }
+            }, (error) => {
+                console.error("Lỗi đồng bộ phòng:", error);
+            });
+        }
+
+        async function syncAndRender() {
+            renderAll();
+            if (gameState.mode === 'online' && roomCode && db && currentUser) {
+                try {
+                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'ludo_rooms', roomCode);
+                    await updateDoc(roomRef, {
+                        stateJson: JSON.stringify(gameState),
+                        updatedAt: Date.now()
+                    });
+                } catch (e) {
+                    console.error("Không thể đồng bộ nước đi:", e);
+                }
+            }
+        }
+
+        window.copyRoomCode = () => {
+            if (!roomCode) return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(`Đã sao chép mã phòng: ${roomCode}`);
+        };
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.remove('opacity-0');
+            setTimeout(() => t.classList.add('opacity-0'), 2600);
+        }
+
+        // Khởi dựng bàn cờ nền ngay khi tải trang
+        window.onload = () => {
+            buildBoardGrid();
+            renderAll();
+        };
+    </script>
+</body>
+</html>
